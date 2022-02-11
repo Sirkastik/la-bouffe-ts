@@ -1,0 +1,143 @@
+<template>
+	<app-header />
+	<main>
+		<h3 class="doc">
+			{{ doc }}
+		</h3>
+		<div class="list">
+			<div v-for="item in items" v-bind:key="item.id" class="list-item">
+				<!-- <span class="icon"><i class="fas fa-utensils"></i></span> -->
+				<span class="item-name">{{ item.name }}</span>
+				<span class="item-price">@{{ item.price }}</span>
+				<span class="item-res">{{ item.restaurant }}</span>
+				<span class="atc" @click="addToCart(item)"
+					><i class="fas fa-cart-plus"></i
+				></span>
+			</div>
+		</div>
+	</main>
+	<bottom-nav />
+</template>
+
+<script setup lang="ts">
+import AppHeader from "@/components/AppHeader.vue";
+import BottomNav from "@/components/AppNav.vue";
+import { db, collection, getDocs } from "../includes/firebase";
+import { computed, ref } from "vue";
+import { useRoute } from "vue-router";
+
+const items = ref<any[]>([]);
+const cart = ref<any[]>([]);
+
+const doc = computed(() => useRoute().params.doc.toString());
+
+const getItems = (document: any) => {
+	const item = {
+		...document.data(),
+		id: document.id,
+	};
+	items.value.unshift(item);
+};
+
+const addToCart = (item: any) => {
+	const myCart = cart.value ? addItem(item) : [item];
+	localStorage.setItem("foodCart", JSON.stringify(myCart));
+};
+
+const addItem = (item: any) => {
+	let myCart = cart.value;
+	if (inCart(item)) return myCart;
+	myCart.push(item);
+	return myCart;
+};
+
+const inCart = (newItem: any) => {
+	return cart.value && cart.value.some((item) => item.id === newItem.id);
+};
+
+const savedCart = localStorage.getItem("foodCart");
+if (savedCart) cart.value = JSON.parse(savedCart);
+const docSnap = await getDocs(collection(db, doc.value));
+docSnap.forEach(getItems);
+</script>
+
+<style scoped>
+main {
+	height: calc(100vh - 10rem);
+	margin-top: 5rem;
+	padding: 0 1.5rem;
+	overflow-y: scroll;
+}
+
+.doc {
+	text-align: center;
+	font-size: 1.1em;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+	font-weight: bold;
+
+	padding: 0.5rem 0;
+}
+
+.list {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	padding: 1rem 0;
+	width: 100%;
+	animation: slide 1s ease-in-out both;
+}
+
+@keyframes slide {
+	from {
+		transform: translateX(70vh);
+	}
+	to {
+		transform: translateX(0);
+	}
+}
+
+.list-item {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	box-shadow: var(--shadow);
+	height: 3rem;
+	border-radius: 0.25rem;
+
+	background: var(--color);
+	color: var(--main);
+	font-size: 0.8em;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+	font-weight: bold;
+}
+
+.item-name {
+	margin-right: auto;
+	padding-left: 1rem;
+}
+
+.item-price {
+	flex-shrink: 1;
+	padding-right: 1rem;
+}
+
+.item-res {
+	width: 4rem;
+	font-size: 0.8em;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.atc {
+	height: 3rem;
+	background: var(--color);
+	color: var(--main);
+	padding: 0 0.5rem;
+	display: grid;
+	place-content: center;
+	border-radius: 0 0.25rem 0.25rem 0;
+}
+</style>
